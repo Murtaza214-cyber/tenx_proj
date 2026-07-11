@@ -48,11 +48,18 @@ This project utilizes a **Feature-Based / Vertical Slice** architectural design.
     - Calculates total price (product price × quantity)
   - **Returns:** Order confirmation with ID, user ID, product ID, quantity, and total price
 
+### 🤖 Chatbot Feature
+- **POST /chatbot/message** - Send a message to the AI assistant
+  - Persists the incoming user message to the database
+  - Calls the Gemini AI model to generate a response
+  - Persists the generated assistant reply as chat history
+  - Returns the stored chatbot response payload
+
 ---
 
 ## 🏛️ Architectural Layers
 
-Each feature (Users, Categories, Products, Orders) follows a three-layer architecture:
+Each feature (Users, Categories, Products, Orders, Chatbot) follows a three-layer architecture:
 
 1. **Routes Layer** (`*_routes.py`) - API endpoints and HTTP handling with dependency injection
 2. **Service Layer** (`*_service.py`) - Business logic, validation rules, and domain coordination
@@ -66,6 +73,7 @@ Each feature (Users, Categories, Products, Orders) follows a three-layer archite
 - Products can automatically create and assign categories on the fly
 - Orders coordinate across multiple domains: users, products, and inventory
 - ProductService is injected into OrderService to handle inventory validation and deduction
+- The Chatbot feature stores conversation messages in the same application database, enabling history-aware persistence alongside the AI response flow
 
 ---
 

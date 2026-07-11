@@ -16,7 +16,7 @@ SECRET_KEY = "super-secret-change-me-in-production"
 REFRESH_SECRET_KEY = "another-super-secret-for-refresh-tokens"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 10
-REFRESH_TOKEN_EXPIRE_DAYS = 0
+REFRESH_TOKEN_EXPIRE_DAYS = 2
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="users/login")
 
