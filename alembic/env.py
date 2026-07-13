@@ -8,6 +8,7 @@ from app.features.users.users_models import UserDB
 from app.features.products.product_models import ProductDB
 from app.features.orders.order_models import OrderDB
 from app.features.categories.category_models import CategoryDB
+from app.features.chatbot.chatbot_models import ChatMessage
 from app.config.database import Base
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

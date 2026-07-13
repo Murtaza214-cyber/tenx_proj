@@ -11,6 +11,7 @@ class ChatMessage(Base):
     role = Column(String, nullable=False)     # 'user' or 'model'
     content = Column(Text, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
+    session_id = Column(String, nullable=True)  # 🔑 Tracks individual conversation threads
 
 class ChatRequest(BaseModel):
     message: str
@@ -23,3 +24,7 @@ class ChatResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+class ChatPayload(BaseModel):
+    session_id: str  # 🔑 Tracks individual conversation threads
+    message: str

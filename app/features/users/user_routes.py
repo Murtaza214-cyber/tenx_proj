@@ -37,14 +37,41 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 def create_access_token(data: dict, expires_delta: timedelta = None):
     to_encode = data.copy()
     expire = datetime.now(timezone.utc) + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
-    to_encode.update({"exp": expire})
+    to_encode.update({"exp": expire, "type": "access"})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
 def create_refresh_token(data: dict, expires_delta: timedelta = None):
     to_encode = data.copy()
     expire = datetime.now(timezone.utc) + (expires_delta or timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS))
-    to_encode.update({"exp": expire})
+    to_encode.update({"exp": expire, "type": "refresh"})
     return jwt.encode(to_encode, REFRESH_SECRET_KEY, algorithm=ALGORITHM)
+
+def get_current_user(token: str = Depends(oauth2_scheme)):
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials"
+    )
+
+    try:
+        payload = jwt.decode(
+            token,
+            SECRET_KEY,
+            algorithms=[ALGORITHM],
+            options={"require": ["exp", "sub", "type"]}
+        )
+    except jwt.ExpiredSignatureError:
+        raise credentials_exception
+    except jwt.PyJWTError:
+        raise credentials_exception
+
+    if payload.get("type") != "access":
+        raise credentials_exception
+
+    email = payload.get("sub")
+    if email is None:
+        raise credentials_exception
+
+    return email
 
 # Dependency to build service layer instance
 def get_user_service(db: Session = Depends(get_db)):
@@ -56,34 +83,34 @@ def get_user_service(db: Session = Depends(get_db)):
 
 @router.post("/login")
 async def login(
-    response: Response, 
-    payload: UserLogin,  # Fixed: Removed Depends() so it correctly parses JSON bodies
+    response: Response,
+    payload: UserLogin,
     db: Session = Depends(get_db)
 ):
     user_repo = UserRepository(db)
     user = user_repo.get_by_email(payload.email)
-    
+
     if not user or not verify_password(payload.password, user.hashed_password):
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, # Changed to 401 Unauthorized for security
+            status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid email or password"
         )
-    
+
     access_token = create_access_token({"sub": user.email})
     refresh_token = create_refresh_token({"sub": user.email})
-    
-    # Secure design: Send the refresh token as a secure, HTTP-only cookie 
-    # to protect it from malicious client-side JavaScript theft
+
     response.set_cookie(
         key="refresh_token",
         value=refresh_token,
         httponly=True,
         max_age=REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
-        samesite="lax"
+        samesite="lax",
+        secure=False,
+        path="/"
     )
-    
+
     return {
-        "access_token": access_token, 
+        "access_token": access_token,
         "token_type": "bearer"
     }
 
@@ -91,6 +118,7 @@ async def login(
 @router.post("/refresh")
 async def refresh_access_token(
     request: Request,
+    response: Response,
     db: Session = Depends(get_db)
 ):
     refresh_token = request.cookies.get("refresh_token")
@@ -106,8 +134,15 @@ async def refresh_access_token(
             refresh_token,
             REFRESH_SECRET_KEY,
             algorithms=[ALGORITHM],
-            options={"require": ["exp", "sub"]}
+            options={"require": ["exp", "sub", "type"]}
         )
+
+        if payload.get("type") != "refresh":
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid token type"
+            )
+
         email: str = payload.get("sub")
 
         if email is None:
@@ -126,6 +161,18 @@ async def refresh_access_token(
             )
 
         new_access_token = create_access_token({"sub": email})
+        rotated_refresh_token = create_refresh_token({"sub": email})
+
+        response.set_cookie(
+            key="refresh_token",
+            value=rotated_refresh_token,
+            httponly=True,
+            max_age=REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
+            samesite="lax",
+            secure=False,
+            path="/"
+        )
+
         return {"access_token": new_access_token, "token_type": "bearer"}
 
     except jwt.ExpiredSignatureError:
