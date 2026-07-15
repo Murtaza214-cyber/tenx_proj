@@ -8,7 +8,7 @@ A production-ready, lightweight E-Commerce API built with Python and FastAPI. Th
 
 This project uses a **Feature-Based / Vertical Slice** architecture. Each domain owns its own routes, services, repositories, models, and schemas.
 
-![alt text](image.png)
+![alt text](architecture.png)
 
 ---
 
@@ -55,6 +55,8 @@ The chatbot integrates with the e-commerce application to provide conversational
 
 #### Chatbot Cache Modes
 The chatbot supports multiple cache strategies to improve performance and reduce redundant LLM requests.
+
+![Chatbot Cache](chatbot_cache.png)
 
 - `exact` cache:
   - Matches the user message text exactly in Redis

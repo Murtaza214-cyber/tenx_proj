@@ -1,1 +1,8 @@
+fastapi
+uvicorn[standard]
+sqlalchemy
+alembic
+redis
+bcrypt
+PyJWT
 python-dotenv
