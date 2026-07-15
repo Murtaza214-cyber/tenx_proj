@@ -3,9 +3,7 @@ from sqlalchemy.orm import Session
 from app.features.orders.order_models import OrderDB
 from app.features.products.product_models import ProductDB
 
-# =====================================================================
-# 💾 1. Actual Database Query Functions (Hidden from Gemini)
-# =====================================================================
+"""Chatbot helper functions for direct DB queries and Gemini tool integration."""
 
 def query_order_status_db(db: Session, order_id: int) -> dict:
     order = db.query(OrderDB).filter(OrderDB.id == order_id).first()
@@ -32,25 +30,13 @@ def query_product_details_db(db: Session, product_title: str) -> dict:
     return {"error": f"No product matching '{product_title}' was found in the inventory catalog."}
 
 
-# =====================================================================
-# 🧠 2. Simple Wrapper Functions (Registered with Gemini)
-# =====================================================================
-
 def verify_order_status(order_id: int) -> dict:
-    """
-    Fetches the tracking status, item quantity, and price breakdown of a specific order.
-    Use this whenever a user asks about order tracking, delivery schedules, or order status.
-    """
-    # This wrapper function has a pristine signature! No complex parameters.
+    """Gemini-exposed tool for fetching order status and details."""
     pass
 
 
 def search_product_details(product_title: str) -> dict:
-    """
-    Searches the inventory catalog for a product by its title to find pricing, availability, and stock details.
-    Use this when a user asks about product costs, item availability, stock counts, or product details.
-    """
-    # This wrapper function has a pristine signature! No complex parameters.
+    """Gemini-exposed tool for looking up product details by title."""
     pass
 
 

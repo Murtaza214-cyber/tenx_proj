@@ -1,7 +1,8 @@
 # app/features/chatbot/chatbot_models.py
+from typing import Literal
 from sqlalchemy import Column, Integer, String, Text, DateTime
 from datetime import datetime
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from app.config.database import Base
 
 class ChatMessage(Base):
@@ -26,5 +27,6 @@ class ChatResponse(BaseModel):
         from_attributes = True
 
 class ChatPayload(BaseModel):
-    session_id: str  # 🔑 Tracks individual conversation threads
+    session_id: str
     message: str
+    cache_mode: Literal["exact", "semantic", "disabled"] = Field(default="semantic")

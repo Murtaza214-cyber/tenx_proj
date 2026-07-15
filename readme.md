@@ -1,12 +1,13 @@
 # Mini E-Commerce Production API
 
-A production-ready, lightweight E-Commerce API built with Python and FastAPI. This project serves as a practical implementation of software engineering design patterns, focusing on strict Separation of Concerns (SoC), Dependency Injection, and a Feature-Based Project Structure.
+A production-ready, lightweight E-Commerce API built with Python and FastAPI. This project is organized with strict Separation of Concerns, dependency injection, and a feature-based vertical slice structure.
 
 ---
 
 ## 🏗️ System Architecture
 
-This project utilizes a **Feature-Based / Vertical Slice** architectural design. Each business domain contains its own decoupled presentation, business logic, and data access layers.
+This project uses a **Feature-Based / Vertical Slice** architecture. Each domain owns its own routes, services, repositories, models, and schemas.
+
 ![alt text](image.png)
 
 ---
@@ -15,65 +16,98 @@ This project utilizes a **Feature-Based / Vertical Slice** architectural design.
 
 ### 👥 Users Feature
 - **POST /users/** - Register a new user
-  - Validates email uniqueness (prevents duplicate email registrations)
-  - Returns user ID, email, and created user response
+  - Validates email uniqueness
+  - Returns user metadata and created response
 - **GET /users/{username}** - Retrieve user by username
-  - Searches for user by exact username match
-  - Returns 404 if user not found
 - **GET /users/email/{email}** - Retrieve user by email
-  - Searches for user by exact email match
-  - Returns 404 if user not found
+- Login flows use access tokens and refresh tokens for secure session handling
 
 ### 🏷️ Categories Feature
 - **GET /categories/** - Retrieve all product categories
-- **POST /categories/** - Create or retrieve category
-  - Implements get-or-create pattern (returns existing category if it already exists with the same name)
+- **POST /categories/** - Create or return an existing category
 
 ### 📦 Products Feature
 - **POST /products/** - Create a new product
-  - Prevents duplicate product titles (same title cannot be used more than once)
-  - Associates product with a category (auto-creates category if needed)
-  - Returns product details with ID, title, price, stock, and category
-- **GET /products/** - Retrieve all products in the catalog
-- **GET /products/{product_id}** - Retrieve a specific product by ID
+  - Prevents duplicate titles
+  - Auto-creates category if needed
+- **GET /products/** - List all products
+- **GET /products/{product_id}** - Retrieve a single product by ID
 
 ### 🛒 Orders Feature
 - **POST /orders/** - Place a new order (checkout)
-  - **Validation Logic:**
-    - Verifies user exists in the system
-    - Verifies product exists in the catalog
-    - Checks inventory availability before order placement
-  - **Business Logic:**
-    - Automatically deducts order quantity from product stock
-    - Calculates total price (product price × quantity)
-  - **Returns:** Order confirmation with ID, user ID, product ID, quantity, and total price
+  - Validates user and product existence
+  - Checks inventory before placing the order
+  - Deducts product stock and calculates total price
 
 ### 🤖 Chatbot Feature
+The chatbot integrates with the e-commerce application to provide conversational assistance, order and product inquiries, and session-aware replies.
+
+- **POST /chatbot/session** - Initialize a new chatbot session
+  - Generates a unique `session_id`
+  - Stores a welcome message in chat history
+  - Returns the new session ID and welcome text
+
 - **POST /chatbot/message** - Send a message to the AI assistant
-  - Persists the incoming user message to the database
-  - Calls the Gemini AI model to generate a response
-  - Persists the generated assistant reply as chat history
-  - Returns the stored chatbot response payload
+  - Accepts `session_id`, `message`, and `cache_mode`
+  - Persists incoming user messages to the database
+  - Supports exact and semantic caching to reduce API calls
+  - Returns the assistant response and stores it in chat history
+
+#### Chatbot Cache Modes
+The chatbot supports multiple cache strategies to improve performance and reduce redundant LLM requests.
+
+- `exact` cache:
+  - Matches the user message text exactly in Redis
+  - Returns cached responses immediately when found
+  - If no match exists, the request falls through to the LLM and the result is cached afterward
+
+- `semantic` cache:
+  - Uses sentence embeddings to compare query similarity
+  - Returns cached responses for semantically similar user queries
+  - Also updates exact cache for fast repeat lookups
+
+- `disabled` cache:
+  - Skips cache lookups entirely
+  - Always queries the LLM directly
+
+#### Chatbot Diagnostics and Observability
+The chatbot logs diagnostics to `chatbot_diagnostics.log` with the following fields:
+- `timestamp`
+- `session_id`
+- `cache_mode`
+- `cache_status` (`HIT`, `MISS`, or `DISABLED`)
+- `cache_hits`
+- `db_hits`
+- `latency_ms`
+- `query`
+
+This log supports performance monitoring, cache efficiency analysis, and tracking of database access patterns.
+
+#### Token Usage
+While the chatbot does not currently log token counts directly, it is built around LLM token usage principles:
+- Each LLM request consumes input and output tokens based on message length and model behavior
+- Caching reduces repeated LLM queries, which can lower token consumption and cost
+- The `exact` and `semantic` cache modes are the primary mechanism for preserving tokens by reusing prior responses
 
 ---
 
 ## 🏛️ Architectural Layers
 
-Each feature (Users, Categories, Products, Orders, Chatbot) follows a three-layer architecture:
+Each feature follows a clear layered pattern:
 
-1. **Routes Layer** (`*_routes.py`) - API endpoints and HTTP handling with dependency injection
-2. **Service Layer** (`*_service.py`) - Business logic, validation rules, and domain coordination
-3. **Repository Layer** (`*_repository.py`) - Database queries and data persistence
-4. **Models Layer** (`*_models.py`) - Database entities (ORM) and Pydantic request/response schemas
+1. **Routes Layer** (`*_routes.py`) - API endpoint definitions and FastAPI wiring
+2. **Service Layer** (`*_service.py`) - Business logic, caching orchestration, and AI integration
+3. **Repository Layer** (`*_repository.py`) - ORM data access and persistence logic
+4. **Models Layer** (`*_models.py`) - Database entities and Pydantic schemas
 
 ---
 
 ## 🔗 Cross-Domain Integration
 
-- Products can automatically create and assign categories on the fly
-- Orders coordinate across multiple domains: users, products, and inventory
-- ProductService is injected into OrderService to handle inventory validation and deduction
-- The Chatbot feature stores conversation messages in the same application database, enabling history-aware persistence alongside the AI response flow
+- Products can create and assign categories automatically
+- Orders coordinate users, products, and inventory updates
+- Chatbot messages are persisted in the same database for session-aware responses
+- The chatbot can bypass the LLM for direct order lookups when an order ID is detected
 
 ---
 

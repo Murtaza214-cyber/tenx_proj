@@ -6,23 +6,18 @@ from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 
 from app.config.database import get_db
+from app.config.settings import REFRESH_SECRET_KEY, SECRET_KEY
 from app.features.users.user_repository import UserRepository
 from app.features.users.user_service import UserService
 from app.features.users.user_schemas import UserCreate, UserLogin, UserResponse
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
-SECRET_KEY = "super-secret-change-me-in-production"
-REFRESH_SECRET_KEY = "another-super-secret-for-refresh-tokens"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 10
 REFRESH_TOKEN_EXPIRE_DAYS = 2
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="users/login")
-
-# -----------------------------------------------------------------------------
-# CRYPTO & TOKEN UTILITIES (Ideally move these to a utility file later!)
-# -----------------------------------------------------------------------------
 def hash_password(password: str) -> str:
     password_bytes = password.encode('utf-8')
     salt = bcrypt.gensalt()
@@ -35,18 +30,21 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     )
 
 def create_access_token(data: dict, expires_delta: timedelta = None):
+    """Create a short-lived JWT access token for a user session."""
     to_encode = data.copy()
     expire = datetime.now(timezone.utc) + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
     to_encode.update({"exp": expire, "type": "access"})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
 def create_refresh_token(data: dict, expires_delta: timedelta = None):
+    """Create a longer-lived JWT refresh token for rotating session tokens."""
     to_encode = data.copy()
     expire = datetime.now(timezone.utc) + (expires_delta or timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS))
     to_encode.update({"exp": expire, "type": "refresh"})
     return jwt.encode(to_encode, REFRESH_SECRET_KEY, algorithm=ALGORITHM)
 
 def get_current_user(token: str = Depends(oauth2_scheme)):
+    """Validate an access token and return the authenticated user's email."""
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials"

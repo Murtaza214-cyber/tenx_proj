@@ -1,0 +1,6 @@
+timestamp,session_id,cache_mode,cache_status,cache_hits,db_hits,latency_ms,query
+2026-07-15T01:56:14.998729,s1,disabled,DISABLED,2.90,"hello again"
+2026-07-15T12:21:23.524387,b46e612d-e639-48a4-86c6-af28451a98a7,exact,MISS,0,3,10163.61,"hello"
+2026-07-15T12:37:07.080671,b46e612d-e639-48a4-86c6-af28451a98a7,exact,HIT,1,2,6.44,"What is your return policy?"
+2026-07-15T12:37:24.682422,b46e612d-e639-48a4-86c6-af28451a98a7,semantic,HIT,1,2,421.25,"What is your return policy?"
+2026-07-15T12:37:43.707725,b46e612d-e639-48a4-86c6-af28451a98a7,semantic,HIT,1,2,446.09,"Return policy?"
