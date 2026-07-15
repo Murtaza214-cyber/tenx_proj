@@ -72,6 +72,18 @@ The chatbot supports multiple cache strategies to improve performance and reduce
   - Skips cache lookups entirely
   - Always queries the LLM directly
 
+#### Cache Requirements
+- Redis must be running and reachable at `REDIS_URL` for exact and semantic cache lookups.
+- Run `python seed_caches.py` to pre-populate Redis with FAQ seed data and warm the cache.
+- When Redis is inactive, cache lookups will fail and the chatbot will fall back to direct LLM queries.
+
+#### What the Chatbot Has Access To
+- Stored chat session history from the local database
+- Order lookup via the internal `query_order_status_db` tool
+- Product lookup via the internal `query_product_details_db` tool
+- Gemini LLM integration for generating responses and invoking tool-backed queries
+- Cached responses in Redis for both exact text matches and semantic similarity
+
 #### Chatbot Diagnostics and Observability
 The chatbot logs diagnostics to `chatbot_diagnostics.log` with the following fields:
 - `timestamp`
@@ -118,5 +130,7 @@ Each feature follows a clear layered pattern:
 ```bash
 PYTHONPATH=. fastapi dev app/main.py
 ```
+
+> Warning: The chatbot cache requires Redis to be running and the cache seeded. Run `python seed_caches.py` after starting Redis to enable exact and semantic cache lookups.
 
 The API will be available at `http://localhost:8000` with interactive docs at `http://localhost:8000/docs`
